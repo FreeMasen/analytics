@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "main": "analytics.ts",
   "dependencies": {
-    "moment": "^2.22.2",
+    "moment": "^2.22.2"
   },
   "dev-dependencies": {
     "ts-loader": "^5.2.0",
