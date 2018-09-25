@@ -25,7 +25,7 @@ function link_clicked_handler(ev: MouseEvent) {
  * Send the landing info to the analytics server
  * @param url The full url for the endpoint to hit
  */
-export function sendInfo(url = '/analytics'): Promise<void> {
+export function sendInfo(url = '/analytics/landing'): Promise<void> {
     return fetch(url, {
         method: 'POST',
         body: landingBody(),

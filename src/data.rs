@@ -35,7 +35,7 @@ pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
 
 fn get_connection() -> Result<Connection, Error> {
     let conn_str = CONFIG.to_string();
-    let ret = Connection::connect(CONFIG.to_string().as_str(), TlsMode::None)?;
+    let ret = Connection::connect(conn_str.as_str(), TlsMode::None)?;
     Ok(ret)
 }
 
@@ -64,13 +64,13 @@ mod test {
             cookie: None,
             when: super::super::chrono::Local::now().naive_local(),
         };
-        println!("initial request: \n-----------\n{:?}\n----------", initial);
+        debug!(target: "analytics:debug", "initial request: \n-----------\n{:?}\n----------", initial);
         let res = super::add_entry(&initial, "0.0.0.0").unwrap();
-        println!("initial response: \n----------\n{:#?}\n-----------", res);
+        debug!(target: "analytics:debug", "initial response: \n----------\n{:#?}\n-----------", res);
         let exit = super::ExitingInfo {
             cookie: res.token,
             time: 10000,
-            internal_link: None,
+            link_clicked: None,
         };
         super::update_entry(&exit).unwrap();
     }

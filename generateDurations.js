@@ -1,7 +1,7 @@
 const moment = require('moment');
 function main() {
     for (var i = 0; i < 100; i++) {
-        console.log(generateDuration().toString()``);
+        console.log(generateDuration().toString());
     }
 }
 

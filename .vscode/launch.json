@@ -12,6 +12,25 @@
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Cargo test",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                ]
+            },
+            "program": "${cargo:program}",
+            "args": ["--nocapture", "test_random_durations"],
+            "sourceLanguages": [
+                "rust"
+            ],
+            "env": {
+                "RUST_LOG": "analytics:log,analytics:debug,analytics:error,analytics:info"
+            }
         }
     ]
 }

@@ -31,7 +31,7 @@ CREATE SEQUENCE session_id
 CREATE TABLE session (
     id INTEGER DEFAULT nextval('session_id'::regclass) NOT NULL,
     cookie_id INTEGER NOT NULL,
-    referrer CHARACTER VARYING(255) NOT NULL,
+    referrer CHARACTER VARYING(255),
     page CHARACTER VARYING(255) NOT NULL,
     start TIMESTAMP,
     session_id UUID DEFAULT uuid_generate_v4() NOT NULL,
