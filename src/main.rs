@@ -220,7 +220,7 @@ mod test {
         let second_body = ExitingInfo {
             visit: res.visit,
             time: 1000,
-            link_clicked: None
+            link_clicked: None,
         };
         c.post(&format!("{}/exiting", addr))
                                 .json(&second_body)

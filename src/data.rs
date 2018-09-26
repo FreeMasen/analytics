@@ -29,7 +29,7 @@ pub(crate) fn add_entry(info: &LandingInfo, ip: &str) -> Result<InitialResponse,
 
 pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
     let conn = get_connection()?;
-    conn.execute("SELECT add_exit_info($1, $2, $3)", &[&info.visit, &info.time, &info.link_clicked])?;
+    conn.execute("SELECT update_session($1, $2, $3)", &[&info.visit, &info.time, &info.link_clicked])?;
     Ok(())
 }
 
@@ -55,22 +55,38 @@ impl ToString for DbConfig {
 
 #[cfg(test)]
 mod test {
+    use uuid::Uuid;
     #[test]
-    fn all() {
+    fn simple() {
         let initial = super::LandingInfo {
             referrer: Some("http://reddit.com/r/rust".into()),
             page: "http://wiredforge.com/blog/getpid/index.html".into(),
             cookie: None,
             when: super::super::chrono::Utc::now(),
         };
-        debug!(target: "analytics:debug", "initial request: \n-----------\n{:?}\n----------", initial);
+        debug!(target: "analytics:test", "initial request: \n-----------\n{:?}\n----------", initial);
         let res = super::add_entry(&initial, "0.0.0.0").unwrap();
-        debug!(target: "analytics:debug", "initial response: \n----------\n{:#?}\n-----------", res);
+        debug!(target: "analytics:test", "initial response: \n----------\n{:#?}\n-----------", res);
         let exit = super::ExitingInfo {
             visit: res.visit,
             time: 10000,
             link_clicked: None,
         };
         super::update_entry(&exit).unwrap();
+    }
+
+    #[test]
+    fn unknown_cookie() {
+        let unknown_cookie = Uuid::new_v4();
+        let landing = super::LandingInfo {
+            referrer: Some("http://reddit.com/r/rust".into()),
+            page: "http://wiredforge.com/blog/getpid/index.html".into(),
+            cookie: Some(unknown_cookie),
+            when: super::super::chrono::Utc::now(),
+        };
+        debug!(target: "analytics:test", "initial request: \n-----------\n{:?}\n----------", landing);
+        let res = super::add_entry(&landing, "1.1.1.1").unwrap();
+        debug!(target: "analytics:test", "result: {:?}", res);
+        assert_ne!(unknown_cookie, res.token);
     }
 }

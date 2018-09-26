@@ -101,7 +101,6 @@ export function sendExiting(url = '/analytics/exiting', info: ExitingInfo = new 
  */
 export class ExitingInfo {
     constructor(
-        public cookie: string = safeString(localStorage.getItem(COOKIE_KEY)),
         public visit: string = safeString(localStorage.getItem(VISIT_KEY)),
         public time: moment.Duration = moment.duration(moment().diff(now)),
         public link_clicked: string = exit_link,
@@ -109,7 +108,7 @@ export class ExitingInfo {
 
     toJSON(): any {
         return {
-            cookie: this.cookie,
+            visit: this.visit,
             time: this.time.toString(),
             link_clicked: this.link_clicked,
         }
