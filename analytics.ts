@@ -1,7 +1,9 @@
 import * as moment from 'moment';
 const now = moment();
 const COOKIE_KEY = 'pizzalitics';
-let link_clicked;
+const VISIT_KEY = 'slice';
+const method = 'POST';
+let exit_link;
 let visit_key;
 /**
  * Setup up a click event on all of the <a> tags that will
@@ -19,21 +21,26 @@ export function setup_click_watcher() {
  * @param ev {ClickEvent<HTMLAnchorElement>} - the click event
  */
 function link_clicked_handler(ev: MouseEvent) {
-    link_clicked = (ev.currentTarget as HTMLAnchorElement).href;
+    exit_link = (ev.currentTarget as HTMLAnchorElement).href;
 }
 /**
  * Send the landing info to the analytics server
  * @param url The full url for the endpoint to hit
  */
-export function sendInfo(url = '/analytics/landing'): Promise<void> {
-    return fetch(url, {
-        method: 'POST',
-        body: landingBody(),
-    }).then(r => {
+export function sendInfo(url = '/analytics/landing', info: LandingInfo = new LandingInfo()): Promise<InitialResponse> {
+    let reqInit = {
+        method,
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(info),
+    };
+    return fetch(url, reqInit).then(r => {
         if (!r.ok) {
-            console.error('Failed to send info: ', r.statusText);
+            return Promise.reject('Failed to send info: ' + r.statusText);
         } else {
-            r.json().then(initialResponseHandler);
+            return r.json()
         }
     })
 }
@@ -41,8 +48,10 @@ export function sendInfo(url = '/analytics/landing'): Promise<void> {
  * Store the initial response from the web server
  * @param r The initial response from the web server
  */
-function initialResponseHandler(r: InitialResponse) {
-    document.cookie[COOKIE_KEY] = r.token;
+export function initialResponseHandler(r: InitialResponse) {
+    console.log('storing token', r);
+    localStorage.setItem(COOKIE_KEY, r.token);
+    localStorage.setItem(VISIT_KEY, r.visit);
 }
 /**
  * The initial response from the  server after
@@ -55,58 +64,48 @@ interface InitialResponse {
 /**
  * The landing information for the server
  */
-class LandingInfo {
-    referrer: string;
-    page: string;
-    cookie: string;
-    when: moment.Moment;
-    constructor() {
-        this.referrer = document.referrer;
-        this.page = document.location.href;
-        this.cookie = document.cookie[COOKIE_KEY];
-        this.when = moment();
-    }
+export class LandingInfo {
+    constructor(
+        public referrer = safeString(document.referrer),
+        public page = document.location.href,
+        public cookie = safeString(localStorage.getItem(COOKIE_KEY)),
+        public when = moment(),
+    ) {}
 }
-/**
- * Create the landing info for this page and then
- * JSON.stringify it
- */
-function landingBody(): string {
-    let obj =  new LandingInfo();
-    return JSON.stringify(obj);
+
+function safeString(str): string | null {
+    if (!str) return null;
+    if (str === '') return null;
+    return str;
 }
+
 /**
  * Send the last information about this user browsing this
  * page
  * @param url The endpoint to send the exiting info to
  */
-export function sendExiting(url = '/analytics/exiting') {
-    fetch(url, {
-        method: 'POST',
-        body: exitingBody(),
-    })
+export function sendExiting(url = '/analytics/exiting', info: ExitingInfo = new ExitingInfo()) {
+    let xhr = new XMLHttpRequest();
+    xhr.open(method, url, false);
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    let body = JSON.stringify(info);
+    console.log('sending exit info with', body);
+    xhr.send(body);
+    localStorage.removeItem(VISIT_KEY);
 }
-/**
- * Create the exiting information and then
- * JSON.stringify it
- */
-function exitingBody() {
-    let obj = new ExitingInfo();
-    return JSON.stringify(obj);
-}
+
 /**
  * The information captured as a user is exiting
  * the page
  */
-class ExitingInfo {
-    cookie: string;
-    time: moment.Duration;
-    link_clicked: string;
-    constructor() {
-        this.cookie = document.cookie[COOKIE_KEY];
-        this.time = moment.duration(moment().diff(now));
-        this.link_clicked = link_clicked;
-    }
+export class ExitingInfo {
+    constructor(
+        public cookie: string = safeString(localStorage.getItem(COOKIE_KEY)),
+        public visit: string = safeString(localStorage.getItem(VISIT_KEY)),
+        public time: moment.Duration = moment.duration(moment().diff(now)),
+        public link_clicked: string = exit_link,
+        ) {}
 
     toJSON(): any {
         return {
