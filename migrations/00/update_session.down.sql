@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS update_session(UUID, BIGINT, TEXT);

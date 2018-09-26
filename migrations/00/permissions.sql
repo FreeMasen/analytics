@@ -1,0 +1,8 @@
+GRANT ALL ON TABLE session TO carl;
+GRANT ALL ON SEQUENCE session_id TO carl;
+GRANT ALL ON TABLE cookie TO carl;
+GRANT ALL ON SEQUENCE cookie_id TO carl;
+GRANT ALL ON TABLE ip_address TO carl;
+GRANT ALL ON SEQUENCE ip_address_id TO carl;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL ON TABLES  TO carl;
