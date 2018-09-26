@@ -1,1 +1,2 @@
-RUST_LOG=analytics:debug,analytics:info,analytics:error,analytics:log cargo run
+cargo build -- release
+RUST_LOG=analytics:info,analytics:error,analytics:log ./target/release/analytics >> ~/logs/analytics.log &
