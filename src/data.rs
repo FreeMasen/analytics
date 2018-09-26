@@ -29,7 +29,7 @@ pub(crate) fn add_entry(info: &LandingInfo, ip: &str) -> Result<InitialResponse,
 
 pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
     let conn = get_connection()?;
-    conn.execute("SELECT add_exit_info($1, $2, $3)", &[&info.cookie, &info.time, &info.link_clicked])?;
+    conn.execute("SELECT add_exit_info($1, $2, $3)", &[&info.visit, &info.time, &info.link_clicked])?;
     Ok(())
 }
 
@@ -57,18 +57,17 @@ impl ToString for DbConfig {
 mod test {
     #[test]
     fn all() {
-        super::super::env_logger::init();
         let initial = super::LandingInfo {
             referrer: Some("http://reddit.com/r/rust".into()),
             page: "http://wiredforge.com/blog/getpid/index.html".into(),
             cookie: None,
-            when: super::super::chrono::Local::now().naive_local(),
+            when: super::super::chrono::Utc::now(),
         };
         debug!(target: "analytics:debug", "initial request: \n-----------\n{:?}\n----------", initial);
         let res = super::add_entry(&initial, "0.0.0.0").unwrap();
         debug!(target: "analytics:debug", "initial response: \n----------\n{:#?}\n-----------", res);
         let exit = super::ExitingInfo {
-            cookie: res.token,
+            visit: res.visit,
             time: 10000,
             link_clicked: None,
         };

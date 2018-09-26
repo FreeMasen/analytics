@@ -33,10 +33,9 @@ CREATE TABLE session (
     cookie_id INTEGER NOT NULL,
     referrer CHARACTER VARYING(255),
     page CHARACTER VARYING(255) NOT NULL,
-    start TIMESTAMP,
-    session_id UUID DEFAULT uuid_generate_v4() NOT NULL,
+    start TIMESTAMP WITH TIME ZONE,
+    visit_token UUID DEFAULT uuid_generate_v4() NOT NULL,
     time_on_page BIGINT,
-    complete BOOLEAN,
     internal_link CHARACTER VARYING(255)
 );
 
@@ -96,20 +95,6 @@ GRANT ALL ON SEQUENCE ip_address_id TO carl;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL ON TABLES  TO carl;
 
-
-CREATE VIEW sessions AS
-    SELECT s.id,
-        s.referrer,
-        s.page,
-    s.start,
-    s.session_id,
-    s.time_on_page,
-    s.complete,
-    c.cookie
-    FROM (session s
-        LEFT JOIN cookie c
-        ON ((s.cookie_id = c.id)));
-
 CREATE TYPE tp_cookie as (
     id INTEGER,
     token UUID
@@ -153,62 +138,46 @@ BEGIN
 END;
 $_$;
 
-CREATE FUNCTION add_session(token UUID, ip TEXT, referrer TEXT,  page TEXT, start TIMESTAMP) RETURNS initial_response
+CREATE FUNCTION add_session(token UUID, ip TEXT, referrer TEXT,  page TEXT, start TIMESTAMP WITH TIME ZONE) RETURNS initial_response
     LANGUAGE plpgsql
     AS $_$
 DECLARE ret initial_response;
 DECLARE new_cookie tp_cookie;
-DECLARE new_session UUID;
+DECLARE new_visit_token UUID;
 BEGIN
-    RAISE NOTICE 'add_session %, %, %, %, %', token, ip, referrer, page, start;
-    new_session := uuid_generate_v4();
-    RAISE NOTICE 'new_session_id %', new_session;
+    new_visit_token := uuid_generate_v4();
     CASE WHEN token IS NULL THEN
-            RAISE NOTICE 'no token provided, inserting new cookie';
             new_cookie = (SELECT get_cookie_for_ip(ip));
-            RAISE NOTICE 'new_cookie %, %', new_cookie.id, new_cookie.token;
-            INSERT INTO session (cookie_id, referrer, page, start, session_id)
-            VALUES (new_cookie.id, referrer, page, start, new_session);
+            INSERT INTO session (cookie_id, referrer, page, start, visit_token)
+            VALUES (new_cookie.id, referrer, page, start, new_visit_token);
             ret.token = new_cookie.token;
-            ret.visit = new_session;
+            ret.visit = new_visit_token;
     ELSE
             SELECT id, cookie
                 INTO new_cookie.id, new_cookie.token
             FROM cookie
             WHERE cookie.cookie = token;
-            INSERT INTO session (cookie_id, referrer, page, start, session_id)
-            VALUES (new_cookie.id, referrer, page, start, new_session);
-            ret.token = new_cookie;
-            ret.visit = new_session;
+
+            INSERT INTO session (cookie_id, referrer, page, start, visit_token)
+            VALUES (new_cookie.id, referrer, page, start, new_visit_token);
+            ret.token = new_cookie.token;
+            ret.visit = new_visit_token;
     END CASE;
 
     RETURN ret;
 END;
 $_$;
 
-CREATE FUNCTION add_exit_info(token UUID, t BIGINT, link TEXT) RETURNS INTEGER
+CREATE FUNCTION add_exit_info(visit_arg UUID, time_arg BIGINT, link_arg TEXT) RETURNS INTEGER
     LANGUAGE plpgsql
     AS $_$
 DECLARE ret INTEGER := 0;
 BEGIN
-    ret := (get_session_id(token));
     UPDATE session
-        SET time_on_page = t,
-        internal_link = link
-    WHERE id = ret;
-    RETURN ret;
-END;
-$_$;
-
-CREATE FUNCTION get_session_id(token UUID) RETURNS INTEGER
-    LANGUAGE plpgsql
-    AS $_$
-DECLARE ret INTEGER := 0;
-BEGIN
-    SELECT id
-        INTO ret
-    FROM session
-    WHERE session.session_id = token;
+        SET time_on_page = time_arg,
+        internal_link = link_arg
+    WHERE visit_token = visit_arg
+    RETURNING id INTO ret;
     RETURN ret;
 END;
 $_$;

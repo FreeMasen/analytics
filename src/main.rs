@@ -11,7 +11,6 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate toml;
 extern crate uuid;
-#[macro_use]
 extern crate warp;
 #[cfg(test)]
 extern crate reqwest;
@@ -21,7 +20,7 @@ use std::{
     num::ParseIntError,
 };
 
-use chrono::{NaiveDateTime};
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use warp::{
     Filter,
@@ -43,25 +42,24 @@ fn main() {
         .and(warp::path("landing"))
         .and(warp::body::json())
         .and(warp::header("x-client-address"))
-        .map(landing_handler);
+        .map(landing_handler)
+        .with(log);
     let exiting = warp::post2()
         .and(warp::path("exiting"))
         .and(warp::body::json())
-        .map(exiting_handler);
-    let catch_all = warp::any().map(catch_all_handler);
-    let analytics = warp::post2().and(warp::path("analytics")).and(
-        landing.or(exiting)
-    );
+        .map(exiting_handler)
+        .with(log);
+    let catch_all = warp::any().map(catch_all_handler).with(log);
+    let analytics = warp::post2().and(warp::path("analytics")).and(landing.or(exiting));
     let routes = warp::any()
                     .and(analytics)
-                    .or(catch_all)
-                    .with(log);
+                    .or(catch_all);
     warp::serve(routes)
         .run(([127, 0, 0, 1], 5555));
 }
 
 fn landing_handler(info: LandingInfo, remote: String) -> impl Reply {
-    info!(target: "analytics:info", "/analytics {} {}", remote, info);
+    info!(target: "analytics:info", "/analytics/landing {} {}", remote, info);
     let res = match data::add_entry(&info, &remote) {
         Ok(info) => {
             info!(target: "analytics:info", "Successfully added entry to database");
@@ -91,12 +89,10 @@ fn landing_handler(info: LandingInfo, remote: String) -> impl Reply {
 
 fn exiting_handler(info: ExitingInfo) -> impl Reply {
     info!(target: "analytics:info", "/analytics/exiting {:}", info);
-    ::std::thread::spawn(move || {
-        match data::update_entry(&info) {
-            Ok(()) => info!(target: "analytics:info", "Successfully updated entry"),
-            Err(e) => error!(target: "analytics:error", "Error updating entry {}", e),
-        }
-    });
+    match data::update_entry(&info) {
+        Ok(()) => info!(target: "analytics:info", "Successfully updated entry"),
+        Err(e) => error!(target: "analytics:error", "Error updating entry {}", e),
+    }
     warp::reply()
 }
 
@@ -111,7 +107,7 @@ struct LandingInfo {
     referrer: Option<String>,
     page: String,
     cookie: Option<Uuid>,
-    when: NaiveDateTime,
+    when: DateTime<Utc>,
 }
 
 impl ::std::fmt::Display for LandingInfo {
@@ -138,7 +134,7 @@ struct InitialResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ExitingInfo {
-    cookie: Uuid,
+    visit: Uuid,
     #[serde(with = "time_parsing")]
     time: i64,
     link_clicked: Option<String>
@@ -151,7 +147,7 @@ impl ::std::fmt::Display for ExitingInfo {
         } else {
             "None"
         };
-        write!(f, "{} {} {}", self.cookie, self.time, link)
+        write!(f, "{} {} {}", self.visit, self.time, link)
     }
 }
 
@@ -200,32 +196,36 @@ impl From<ParseIntError> for Error {
 #[cfg(test)]
 mod test {
     use reqwest;
-    use chrono::Local;
+    use chrono::Utc;
+    use super::{LandingInfo, ExitingInfo, InitialResponse, main};
     #[test]
     fn test_server() -> Result<(), reqwest::Error> {
-        ::std::thread::spawn(|| super::main());
+        debug!(target: "analytics:test", "starting test_server");
+        ::std::thread::spawn(|| main());
+        ::std::thread::sleep(::std::time::Duration::from_secs(2));
         let c = reqwest::Client::new();
         let addr = "http://localhost:5555/analytics";
-        let first_body = super::LandingInfo {
+        let first_body = LandingInfo {
             referrer: None,
             page: String::from("http://example.com"),
             cookie: None,
-            when: Local::now().naive_local(),
+            when: Utc::now(),
         };
-        let res: super::InitialResponse = c.post(&format!("{}/landing", addr))
+        let res: InitialResponse = c.post(&format!("{}/landing", addr))
                                                 .header("x-client-address", "0.0.0.0")
                                                 .json(&first_body)
                                                 .send()?
                                                 .json()?;
         debug!(target: "analytics:test", "res: {:?}", res);
-        let second_body = super::ExitingInfo {
-            cookie: res.token,
+        let second_body = ExitingInfo {
+            visit: res.visit,
             time: 1000,
             link_clicked: None
         };
         c.post(&format!("{}/exiting", addr))
                                 .json(&second_body)
                                 .send()?;
+        debug!(target: "analytics:test",  "finishing test_server");
         Ok(())
     }
 }
