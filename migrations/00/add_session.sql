@@ -43,7 +43,7 @@ CREATE FUNCTION add_session_no_cookie(
 DECLARE ret initial_response;
 DECLARE new_cookie tp_cookie;
 BEGIN
-    new_cookie = (SELECT get_cookie_for_ip(ip));
+    new_cookie = (SELECT get_cookie_for_ip(ip_arg));
     ret.visit = new_session(new_cookie.id, referrer_arg, page_arg, start_arg);
     ret.token = new_cookie.token;
     RETURN ret;
