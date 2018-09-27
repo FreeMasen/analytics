@@ -69,7 +69,7 @@ export class LandingInfo {
         public referrer = safeString(document.referrer),
         public page = document.location.href,
         public cookie = safeString(localStorage.getItem(COOKIE_KEY)),
-        public when = moment(),
+        public when = moment.utc(),
     ) {}
 }
 
