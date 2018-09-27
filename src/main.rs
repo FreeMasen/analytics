@@ -108,6 +108,7 @@ struct LandingInfo {
     page: String,
     cookie: Option<Uuid>,
     when: DateTime<Utc>,
+    prev_visit: Option<Uuid>,
 }
 
 impl ::std::fmt::Display for LandingInfo {

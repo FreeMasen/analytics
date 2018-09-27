@@ -70,6 +70,7 @@ export class LandingInfo {
         public page = document.location.href,
         public cookie = safeString(localStorage.getItem(COOKIE_KEY)),
         public when = moment.utc(),
+        public prev_visit = safeString(localStorage.getItem(VISIT_KEY)),
     ) {}
 }
 
@@ -90,9 +91,7 @@ export function sendExiting(url = '/analytics/exiting', info: ExitingInfo = new 
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader('Content-Type', 'application/json');
     let body = JSON.stringify(info);
-    console.log('sending exit info with', body);
     xhr.send(body);
-    localStorage.removeItem(VISIT_KEY);
 }
 
 /**
