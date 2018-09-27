@@ -24,7 +24,7 @@ CREATE TABLE session (
     cookie_id INTEGER NOT NULL,
     referrer CHARACTER VARYING(255),
     page CHARACTER VARYING(255) NOT NULL,
-    start TIMESTAMP WITH TIME ZONE,
+    start TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp NOT NULL,
     visit_token UUID DEFAULT uuid_generate_v4() NOT NULL,
     time_on_page BIGINT,
     internal_link CHARACTER VARYING(255)
