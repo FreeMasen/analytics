@@ -101,7 +101,7 @@ export function sendExiting(url = '/analytics/exiting', info: ExitingInfo = new 
 export class ExitingInfo {
     constructor(
         public visit: string = safeString(localStorage.getItem(VISIT_KEY)),
-        public time: moment.Duration = moment.duration(moment().diff(now)),
+        public time: moment.Duration = moment.duration(moment.utc().diff(now)),
         public link_clicked: string = exit_link,
         ) {}
 
