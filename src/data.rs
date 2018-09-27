@@ -17,7 +17,7 @@ lazy_static !{
 
 pub(crate) fn add_entry(info: &LandingInfo, ip: &str) -> Result<InitialResponse, Error> {
     let conn = get_connection()?;
-    let rows = conn.query("SELECT token, visit FROM add_session2($1, $2, $3, $4, $5, $6)", &[&info.cookie, &ip, &info.referrer, &info.page, &info.when, &info.prev_visit])?;
+    let rows = conn.query("SELECT token, visit FROM add_session3($1, $2, $3, $4, $5, $6)", &[&info.cookie, &ip, &info.referrer, &info.page, &info.when, &info.prev_visit])?;
     let only = rows.get(0);
     let token: Uuid = only.get(0);
     let visit: Uuid = only.get(1);
