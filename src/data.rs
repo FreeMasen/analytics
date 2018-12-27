@@ -76,7 +76,7 @@ pub(crate) fn reports() -> Result<String, Error> {
             format!("<tr><td>{}</td><td>{}</td></tr>", page, view_count)
         })
         .collect();
-    Ok(format!("<html><head></head><body>{refs_head}{weekly_refs}{foot}{visits_head}{visits}{foot}{views_head}{views}{foot}</body>",
+    Ok(format!("<html><head></head><body>{refs_head}{weekly_refs}{foot}{visits_head}{visits}{foot}{views_head}{views}{foot}</body></html>",
                 refs_head=refs_head,
                 weekly_refs=weekly_refs,
                 foot=foot,
