@@ -123,7 +123,7 @@ fn reports_handler() -> impl Reply {
         .from("r@robertmasen.pizza")
         .to("r.f.masen@gmail.com")
         .subject(format!("Weekly analytics report {}", chrono::Local::today()))
-        .html(msg)
+        .html(&msg)
         .build() {
         Ok(email) => email,
         Err(e) => return Response::builder().status(500).body(format!("{}", e)),
@@ -133,7 +133,7 @@ fn reports_handler() -> impl Reply {
         Err(e) => return Response::builder().status(500).body(format!("{}", e)),
     };
     match mailer.send(&email) {
-        Ok(_) => Response::builder().body(email),
+        Ok(_) => Response::builder().body(msg),
         Err(e) => Response::builder().status(500).body(format!("{}", e))
     }
 }
