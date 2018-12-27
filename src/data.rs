@@ -47,7 +47,7 @@ pub(crate) fn reports() -> Result<String, Error> {
         .iter()
         .map(|r|{
             let referrer: String = r.get(0);
-            let ct: i32 = r.get(1);
+            let ct: i64 = r.get(1);
             format!("<tr><td>{}</td><td>{}</td></tr>", referrer, ct)
         })
         .collect();
@@ -59,7 +59,7 @@ pub(crate) fn reports() -> Result<String, Error> {
                                     WHERE start > CURRENT_DATE - 7) a;", &[])?
         .iter()
         .map(|r| {
-            let visit_count: i32 = r.get(0);
+            let visit_count: i64 = r.get(0);
             format!("<tr><td>{}</td></tr>", visit_count)
         })
         .collect();
@@ -71,7 +71,7 @@ pub(crate) fn reports() -> Result<String, Error> {
                                     GROUP BY page;", &[])?
         .iter()
         .map(|r| {
-            let view_count: i32 = r.get(0);
+            let view_count: i64 = r.get(0);
             let page: String = r.get(1);
             format!("<tr><td>{}</td><td>{}</td></tr>", page, view_count)
         })
