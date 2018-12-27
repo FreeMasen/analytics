@@ -33,7 +33,7 @@ pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn reports() -> Result<String, Error> {
+pub(crate) fn reports() -> Result<String, Error> {
     let conn = get_connection()?;
     let refs_head = format!("<table><thead><tr><th>Referrer</th></th>Count</th></tr></thead><tbody>");
     let weekly_refs: String = conn.query("SELECT DISTINCT referrer, count(page) as ct
