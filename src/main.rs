@@ -52,13 +52,15 @@ fn main() {
         .map(exiting_handler)
         .with(log);
     let reporting = warp::get2()
+        .and(warp::path("analytics"))
         .and(warp::path("reports"))
         .map(reports_handler)
         .with(log);
     let catch_all = warp::any().map(catch_all_handler).with(log);
-    let analytics = warp::post2().and(warp::path("analytics")).and(landing.or(exiting).or(reporting));
+    let analytics = warp::post2().and(warp::path("analytics")).and(landing.or(exiting));
     let routes = warp::any()
                     .and(analytics)
+                    .or(reporting)
                     .or(catch_all);
     warp::serve(routes)
         .run(([127, 0, 0, 1], 5555));
