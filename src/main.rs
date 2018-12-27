@@ -2,6 +2,8 @@ extern crate chrono;
 extern crate env_logger;
 #[macro_use]
 extern crate lazy_static;
+extern crate lettre;
+extern crate lettre_email;
 #[macro_use]
 extern crate log;
 extern crate postgres;
@@ -49,8 +51,12 @@ fn main() {
         .and(warp::body::json())
         .map(exiting_handler)
         .with(log);
+    let reporting = warp::get2()
+        .and(warp::path("reports"))
+        .map(reports_handler)
+        .with(log);
     let catch_all = warp::any().map(catch_all_handler).with(log);
-    let analytics = warp::post2().and(warp::path("analytics")).and(landing.or(exiting));
+    let analytics = warp::post2().and(warp::path("analytics")).and(landing.or(exiting).or(reporting));
     let routes = warp::any()
                     .and(analytics)
                     .or(catch_all);
@@ -89,10 +95,12 @@ fn landing_handler(info: LandingInfo, remote: String) -> impl Reply {
 
 fn exiting_handler(info: ExitingInfo) -> impl Reply {
     info!(target: "analytics:info", "/analytics/exiting {:}", info);
-    match data::update_entry(&info) {
-        Ok(()) => info!(target: "analytics:info", "Successfully updated entry"),
-        Err(e) => error!(target: "analytics:error", "Error updating entry {}", e),
-    }
+    ::std::thread::spawn(move|| {
+        match data::update_entry(&info) {
+            Ok(()) => info!(target: "analytics:info", "Successfully updated entry"),
+            Err(e) => error!(target: "analytics:error", "Error updating entry {}", e),
+        }
+    });
     warp::reply()
 }
 
@@ -100,6 +108,32 @@ fn catch_all_handler() -> impl Reply {
     info!(target: "analytics:info", "*");
     Response::builder()
         .body("<html><head></head><body><h1>analytics smoketest</h1></body>")
+}
+
+fn reports_handler() -> impl Reply {
+    let msg = match data::reports() {
+        Ok(tables) => tables,
+        Err(e) => return Response::builder().status(500).body(""),
+    };
+    use lettre_email::EmailBuilder;
+    use lettre::{EmailTransport, SmtpTransport};
+    let email = match EmailBuilder::new()
+        .from("r@robertmasen.pizza")
+        .to("r.f.masen@gmail.com")
+        .subject(format!("Weekly analytics report {}", chrono::Local::today()))
+        .html(msg)
+        .build() {
+        Ok(email) => email,
+        Err(e) => return Response::builder().status(500).body(""),
+    };
+    let mut mailer = match SmtpTransport::builder_unencrypted_localhost() {
+        Ok(m) => m.build(),
+        Err(e) => return Response::builder().status(500).body(""),
+    };
+    match mailer.send(&email) {
+        Ok(_) => Response::builder().body(""),
+        Err(e) => Response::builder().status(500).body("")
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -211,6 +245,7 @@ mod test {
             page: String::from("http://example.com"),
             cookie: None,
             when: Utc::now(),
+            prev_visit: None,
         };
         let res: InitialResponse = c.post(&format!("{}/landing", addr))
                                                 .header("x-client-address", "0.0.0.0")
@@ -227,6 +262,7 @@ mod test {
                                 .json(&second_body)
                                 .send()?;
         debug!(target: "analytics:test",  "finishing test_server");
+        ::std::thread::sleep(::std::time::Duration::from_secs(2));
         Ok(())
     }
 }
