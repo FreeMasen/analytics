@@ -35,32 +35,35 @@ pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
 
 pub(crate) fn reports() -> Result<String, Error> {
     let conn = get_connection()?;
-    let refs_head = format!("<table><thead><tr><th>Referrer</th></th>Count</th></tr></thead><tbody>");
+    let table_style = r#""border:1px solid black;border-collapse: collapse;margin-bottom: 10px;""#;
+    let header_style = r#""border:1px solid black;font-weight:bold;""#
+    let cell_style = r#""border:1px solid black;""#;
+    let refs_head = format!(r#"<table style={}><thead><tr><th style={head_style}>Referrer</th></th style={head_style}>Count</th></tr></thead><tbody>"#, table_style, head_style=header_style);
     let weekly_refs: String = conn.query("SELECT * FROM referrers_this_week()",
                 &[])?
         .iter()
         .map(|r|{
             let referrer: String = r.get(0);
             let ct: i64 = r.get(1);
-            format!("<tr><td>{}</td><td>{}</td></tr>", referrer, ct)
+            format!("<tr><td style={cell_style}>{}</td><td style={cell_style}>{}</td></tr>", referrer, ct, cell_style=cell_style)
         })
         .collect();
     let foot = format!("</tbody></table>");
-    let visits_head = format!("<table><thead><tr><th>Visit Count</th></tr></thead><tbody>");
+    let visits_head = format!("<table style={}><thead><tr><th style={head_style}>Visit Count</th></tr></thead><tbody>", table_style, head_style=header_style);
     let weekly_visits: String = conn.query("SELECT * FROM unique_visits_this_week()", &[])?
         .iter()
         .map(|r| {
             let visit_count: i64 = r.get(0);
-            format!("<tr><td>{}</td></tr>", visit_count)
+            format!("<tr><td style={cell_style}>{}</td></tr>", visit_count, cell_style=cell_style)
         })
         .collect();
-    let views_head = format!("<table><thead><tr><th>Page</th><th>View Count</th></tr></thead><tbody>");
+    let views_head = format!("<table style={}><thead><tr><th style={head_style}>Page</th><th style={head_style}>View Count</th></tr></thead><tbody>", table_style, head_style=header_style);
     let weekly_views: String = conn.query("SELECT * FROM unique_page_view_this_week()", &[])?
         .iter()
         .map(|r| {
             let view_count: i64 = r.get(0);
             let page: String = r.get(1);
-            format!("<tr><td>{}</td><td>{}</td></tr>", page, view_count)
+            format!("<tr><td style={cell_style}>{}</td><td style={cell_style}>{}</td></tr>", page, view_count, cell_style=cell_style)
         })
         .collect();
     Ok(format!("<html><head></head><body>{refs_head}{weekly_refs}{foot}{visits_head}{visits}{foot}{views_head}{views}{foot}</body></html>",
