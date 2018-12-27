@@ -38,7 +38,7 @@ pub(crate) fn reports() -> Result<String, Error> {
     let table_style = r#""border:1px solid black;border-collapse: collapse;margin-bottom: 10px;""#;
     let header_style = r#""border:1px solid black;font-weight:bold;""#;
     let cell_style = r#""border:1px solid black;""#;
-    let refs_head = format!(r#"<table style={}><thead><tr><th style={head_style}>Referrer</th></th style={head_style}>Count</th></tr></thead><tbody>"#, table_style, head_style=header_style);
+    let refs_head = format!(r#"<table style={}><thead><tr><th style={head_style}>Referrer</th><th style={head_style}>Count</th></tr></thead><tbody>"#, table_style, head_style=header_style);
     let weekly_refs: String = conn.query("SELECT * FROM referrers_this_week()",
                 &[])?
         .iter()
