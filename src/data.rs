@@ -36,13 +36,7 @@ pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
 pub(crate) fn reports() -> Result<String, Error> {
     let conn = get_connection()?;
     let refs_head = format!("<table><thead><tr><th>Referrer</th></th>Count</th></tr></thead><tbody>");
-    let weekly_refs: String = conn.query("SELECT DISTINCT referrer, count(page) as ct
-                FROM session
-                WHERE referrer IS NOT NULL
-                AND referrer NOT LIKE 'https://wiredforge%'
-                AND referrer NOT LIKE 'https://www.wiredforge%'
-                AND start > CURRENT_DATE - 7
-                GROUP BY referrer;",
+    let weekly_refs: String = conn.query("SELECT * FROM referrers_this_week()",
                 &[])?
         .iter()
         .map(|r|{
@@ -53,10 +47,7 @@ pub(crate) fn reports() -> Result<String, Error> {
         .collect();
     let foot = format!("</tbody></table>");
     let visits_head = format!("<table><thead><tr><th>Visit Count</th></tr></thead><tbody>");
-    let weekly_visits: String = conn.query("SELECT count(cookie_id) as visit_count
-                                    FROM (SELECT DISTINCT cookie_id
-                                        FROM session
-                                    WHERE start > CURRENT_DATE - 7) a;", &[])?
+    let weekly_visits: String = conn.query("SELECT * FROM unique_visits_this_week()", &[])?
         .iter()
         .map(|r| {
             let visit_count: i64 = r.get(0);
@@ -64,11 +55,7 @@ pub(crate) fn reports() -> Result<String, Error> {
         })
         .collect();
     let views_head = format!("<table><thead><tr><th>Page</th><th>View Count</th></tr></thead><tbody>");
-    let weekly_views: String = conn.query("SELECT count(cookie_id) as view_count, page
-                                    FROM (SELECT DISTINCT cookie_id, page
-                                        FROM session
-                                    WHERE start > CURRENT_DATE - 7) a
-                                    GROUP BY page;", &[])?
+    let weekly_views: String = conn.query("SELECT * FROM unique_page_view_this_week()", &[])?
         .iter()
         .map(|r| {
             let view_count: i64 = r.get(0);
