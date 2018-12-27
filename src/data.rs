@@ -48,7 +48,7 @@ pub fn reports() -> Result<String, Error> {
         .map(|r|{
             let referrer: String = r.get(0);
             let ct: i32 = r.get(1);
-            format!("<tr><td>{}</td><td>{}</td></tr>", referrer, ct);
+            format!("<tr><td>{}</td><td>{}</td></tr>", referrer, ct)
         })
         .collect();
     let foot = format!("</tbody></table>");
