@@ -59,7 +59,7 @@ pub fn reports() -> Result<String, Error> {
                                     WHERE start > CURRENT_DATE - 7) a;", &[])?
         .iter()
         .map(|r| {
-            let visit_count = r.get(0);
+            let visit_count: i32 = r.get(0);
             format!("<tr><td>{}</td></tr>", visit_count)
         })
         .collect();
