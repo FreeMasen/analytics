@@ -115,7 +115,7 @@ fn catch_all_handler() -> impl Reply {
 fn reports_handler() -> impl Reply {
     let msg = match data::reports() {
         Ok(tables) => tables,
-        Err(e) => return Response::builder().status(500).body(""),
+        Err(e) => return Response::builder().status(500).body(format!("{}", e)),
     };
     use lettre_email::EmailBuilder;
     use lettre::{EmailTransport, SmtpTransport};
@@ -126,15 +126,15 @@ fn reports_handler() -> impl Reply {
         .html(msg)
         .build() {
         Ok(email) => email,
-        Err(e) => return Response::builder().status(500).body(""),
+        Err(e) => return Response::builder().status(500).body(format!("{}", e)),
     };
     let mut mailer = match SmtpTransport::builder_unencrypted_localhost() {
         Ok(m) => m.build(),
-        Err(e) => return Response::builder().status(500).body(""),
+        Err(e) => return Response::builder().status(500).body(format!("{}", e)),
     };
     match mailer.send(&email) {
-        Ok(_) => Response::builder().body(""),
-        Err(e) => Response::builder().status(500).body("")
+        Ok(_) => Response::builder().body(email),
+        Err(e) => Response::builder().status(500).body(format!("{}", e))
     }
 }
 
