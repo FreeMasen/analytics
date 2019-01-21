@@ -3,15 +3,14 @@ const now = moment();
 const COOKIE_KEY = 'pizzalitics';
 const VISIT_KEY = 'slice';
 const method = 'POST';
-let exit_link;
-let visit_key;
+let exit_link: string;
+export {notificationNeeded, notifyUser} from './notification';
 /**
  * Setup up a click event on all of the <a> tags that will
  * capture the href before exiting the page
  */
 export function setup_click_watcher() {
     let anchors = document.getElementsByTagName('a');
-
     for (var i = 0; i < anchors.length;i++) {
         anchors[i].addEventListener('click', link_clicked_handler);
     }
@@ -49,7 +48,6 @@ export function sendInfo(url = '/analytics/landing', info: LandingInfo = new Lan
  * @param r The initial response from the web server
  */
 export function initialResponseHandler(r: InitialResponse) {
-    console.log('storing token', r);
     localStorage.setItem(COOKIE_KEY, r.token);
     localStorage.setItem(VISIT_KEY, r.visit);
 }
@@ -71,6 +69,7 @@ export class LandingInfo {
         public cookie = safeString(localStorage.getItem(COOKIE_KEY)),
         public when = moment.utc(),
         public prev_visit = safeString(localStorage.getItem(VISIT_KEY)),
+        public site = location.host,
     ) {}
 }
 

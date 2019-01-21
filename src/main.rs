@@ -44,10 +44,12 @@ fn main() {
         .and(warp::path("landing"))
         .and(warp::body::json())
         .and(warp::header("x-client-address"))
+        .and(warp::header("User-Agent"))
         .map(landing_handler)
         .with(log);
     let exiting = warp::post2()
         .and(warp::path("exiting"))
+        .and(warp::header("User-Agent"))
         .and(warp::body::json())
         .map(exiting_handler)
         .with(log);
@@ -57,6 +59,7 @@ fn main() {
         .map(reports_handler)
         .with(log);
     let catch_all = warp::any().map(catch_all_handler).with(log);
+    
     let analytics = warp::post2().and(warp::path("analytics")).and(landing.or(exiting));
     let routes = warp::any()
                     .and(analytics)
@@ -66,7 +69,7 @@ fn main() {
         .run(([127, 0, 0, 1], 5555));
 }
 
-fn landing_handler(info: LandingInfo, remote: String) -> impl Reply {
+fn landing_handler(info: LandingInfo, remote: String, user_agent: String) -> impl Reply {
     info!(target: "analytics:info", "/analytics/landing {} {}", remote, info);
     let res = match data::add_entry(&info, &remote) {
         Ok(info) => {
@@ -95,7 +98,7 @@ fn landing_handler(info: LandingInfo, remote: String) -> impl Reply {
     }
 }
 
-fn exiting_handler(info: ExitingInfo) -> impl Reply {
+fn exiting_handler(info: ExitingInfo, user_agent: String) -> impl Reply {
     info!(target: "analytics:info", "/analytics/exiting {:}", info);
     ::std::thread::spawn(move|| {
         match data::update_entry(&info) {
@@ -104,6 +107,10 @@ fn exiting_handler(info: ExitingInfo) -> impl Reply {
         }
     });
     warp::reply()
+}
+
+fn check_user_agent(user_agent: &str) -> bool {
+    user_agent == ""
 }
 
 fn catch_all_handler() -> impl Reply {
@@ -145,6 +152,7 @@ struct LandingInfo {
     cookie: Option<Uuid>,
     when: DateTime<Utc>,
     prev_visit: Option<Uuid>,
+    site: Option<String>
 }
 
 impl ::std::fmt::Display for LandingInfo {
@@ -174,7 +182,7 @@ struct ExitingInfo {
     visit: Uuid,
     #[serde(with = "time_parsing")]
     time: i64,
-    link_clicked: Option<String>
+    link_clicked: Option<String>,
 }
 
 impl ::std::fmt::Display for ExitingInfo {

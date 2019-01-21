@@ -15,9 +15,9 @@ lazy_static !{
     static ref CONFIG: DbConfig = from_str(include_str!("../dbinfo.toml")).expect("Unable to parse dbinfo.toml");
 }
 
-pub(crate) fn add_entry(info: &LandingInfo, ip: &str) -> Result<InitialResponse, Error> {
+pub(crate) fn add_entry(info: &LandingInfo, ip: &str, user_agent: &str) -> Result<InitialResponse, Error> {
     let conn = get_connection()?;
-    let rows = conn.query("SELECT token, visit FROM add_session3($1, $2, $3, $4, $5, $6)", &[&info.cookie, &ip, &info.referrer, &info.page, &info.when, &info.prev_visit])?;
+    let rows = conn.query("SELECT token, visit FROM add_session($1, $2, $3, $4, $5, $6, $7, $8)", &[&info.cookie, &ip, &info.referrer, &info.page, &info.when, &info.prev_visit, &info.site, user_agent])?;
     let only = rows.get(0);
     let token: Uuid = only.get(0);
     let visit: Uuid = only.get(1);
@@ -49,21 +49,23 @@ pub(crate) fn reports() -> Result<String, Error> {
         })
         .collect();
     let foot = format!("</tbody></table>");
-    let visits_head = format!("<table style={}><thead><tr><th style={head_style}>Visit Count</th></tr></thead><tbody>", table_style, head_style=header_style);
+    let visits_head = format!("<table style={}><thead><tr><th style={head_style}>Visit Count</th><th>User Agent</th></tr></thead><tbody>", table_style, head_style=header_style);
     let weekly_visits: String = conn.query("SELECT * FROM unique_visits_this_week()", &[])?
         .iter()
         .map(|r| {
             let visit_count: i64 = r.get(0);
-            format!("<tr><td style={cell_style}>{}</td></tr>", visit_count, cell_style=cell_style)
+            let user_agent: Option<String> = r.get(1);
+            format!("<tr><td style={cell_style}>{}</td><td>{}</tr>", visit_count, user_agent.unwrap_or(String::new()), cell_style=cell_style)
         })
         .collect();
-    let views_head = format!("<table style={}><thead><tr><th style={head_style}>Page</th><th style={head_style}>View Count</th></tr></thead><tbody>", table_style, head_style=header_style);
+    let views_head = format!("<table style={}><thead><tr><th style={head_style}>Page</th><th style={head_style}>View Count</th><th style={head_style}>User Agent</th></tr></thead><tbody>", table_style, head_style=header_style);
     let weekly_views: String = conn.query("SELECT * FROM unique_page_view_this_week()", &[])?
         .iter()
         .map(|r| {
             let view_count: i64 = r.get(0);
             let page: String = r.get(1);
-            format!("<tr><td style={cell_style}>{}</td><td style={cell_style}>{}</td></tr>", page, view_count, cell_style=cell_style)
+            let user_agent: Option<String> = r.get(2);
+            format!("<tr><td style={cell_style}>{}</td><td style={cell_style}>{}</td><td>{}</td></tr>", page, view_count, user_agent.unwrap_or(String::new()), cell_style=cell_style)
         })
         .collect();
     Ok(format!("<html><head></head><body>{refs_head}{weekly_refs}{foot}{visits_head}{visits}{foot}{views_head}{views}{foot}</body></html>",
