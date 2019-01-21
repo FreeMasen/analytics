@@ -50,7 +50,6 @@ fn main() {
     let exiting = warp::post2()
         .and(warp::path("exiting"))
         .and(warp::body::json())
-        .and(warp::header("User-Agent"))
         .map(exiting_handler)
         .with(log);
     let reporting = warp::get2()
@@ -98,7 +97,7 @@ fn landing_handler(info: LandingInfo, remote: String, user_agent: String) -> imp
     }
 }
 
-fn exiting_handler(info: ExitingInfo, user_agent: String) -> impl Reply {
+fn exiting_handler(info: ExitingInfo) -> impl Reply {
     info!(target: "analytics:info", "/analytics/exiting {:}", info);
     ::std::thread::spawn(move|| {
         match data::update_entry(&info) {
@@ -107,10 +106,6 @@ fn exiting_handler(info: ExitingInfo, user_agent: String) -> impl Reply {
         }
     });
     warp::reply()
-}
-
-fn check_user_agent(user_agent: &str) -> bool {
-    user_agent == ""
 }
 
 fn catch_all_handler() -> impl Reply {
