@@ -16,6 +16,7 @@ lazy_static !{
 }
 
 pub(crate) fn add_entry(info: &LandingInfo, ip: &str, user_agent: &str) -> Result<InitialResponse, Error> {
+    debug!("add_entry {:#?},\n{}, {}", info, ip, user_agent);
     let conn = get_connection()?;
     let rows = conn.query("SELECT token, visit FROM add_session($1, $2, $3, $4, $5, $6, $7, $8)", &[&info.cookie, &ip, &info.referrer, &info.page, &info.when, &info.prev_visit, &info.site, &user_agent])?;
     let only = rows.get(0);
@@ -110,9 +111,10 @@ mod test {
             cookie: None,
             when: super::super::chrono::Utc::now(),
             prev_visit: None,
+            site: Some("wiredforge.com".into())
         };
         debug!(target: "analytics:test", "initial request: \n-----------\n{:?}\n----------", initial);
-        let res = super::add_entry(&initial, "0.0.0.0").unwrap();
+        let res = super::add_entry(&initial, "0.0.0.0", "I'm a teapot").unwrap();
         debug!(target: "analytics:test", "initial response: \n----------\n{:#?}\n-----------", res);
         let exit = super::ExitingInfo {
             visit: res.visit,
@@ -131,9 +133,10 @@ mod test {
             cookie: Some(unknown_cookie),
             when: super::super::chrono::Utc::now(),
             prev_visit: None,
+            site: Some("http://wiredforge.com".into()),
         };
         debug!(target: "analytics:test", "initial request: \n-----------\n{:?}\n----------", landing);
-        let res = super::add_entry(&landing, "1.1.1.1").unwrap();
+        let res = super::add_entry(&landing, "1.1.1.1", "I'm a teapot").unwrap();
         debug!(target: "analytics:test", "result: {:?}", res);
         assert_ne!(unknown_cookie, res.token);
     }

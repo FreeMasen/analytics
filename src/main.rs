@@ -251,6 +251,7 @@ mod test {
             cookie: None,
             when: Utc::now(),
             prev_visit: None,
+            site: Some("example.com".into()),
         };
         let res: InitialResponse = c.post(&format!("{}/landing", addr))
                                                 .header("x-client-address", "0.0.0.0")
