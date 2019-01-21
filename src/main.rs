@@ -49,8 +49,8 @@ fn main() {
         .with(log);
     let exiting = warp::post2()
         .and(warp::path("exiting"))
-        .and(warp::header("User-Agent"))
         .and(warp::body::json())
+        .and(warp::header("User-Agent"))
         .map(exiting_handler)
         .with(log);
     let reporting = warp::get2()
@@ -71,7 +71,7 @@ fn main() {
 
 fn landing_handler(info: LandingInfo, remote: String, user_agent: String) -> impl Reply {
     info!(target: "analytics:info", "/analytics/landing {} {}", remote, info);
-    let res = match data::add_entry(&info, &remote) {
+    let res = match data::add_entry(&info, &remote, &user_agent) {
         Ok(info) => {
             info!(target: "analytics:info", "Successfully added entry to database");
             info
