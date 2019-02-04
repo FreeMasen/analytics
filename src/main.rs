@@ -16,6 +16,7 @@ extern crate uuid;
 extern crate warp;
 #[cfg(test)]
 extern crate reqwest;
+extern crate tera;
 
 use std::{
     error::Error as StdError,
@@ -35,6 +36,7 @@ use postgres::Error as PError;
 
 mod data;
 mod time_parsing;
+mod reports;
 
 fn main() {
     env_logger::init();
@@ -115,8 +117,12 @@ fn catch_all_handler() -> impl Reply {
 }
 
 fn reports_handler() -> impl Reply {
-    let msg = match data::reports() {
+    let tables = match data::reports() {
         Ok(tables) => tables,
+        Err(e) => return Response::builder().status(500).body(format!("{}", e)),
+    };
+    let msg = match reports::generate_report(tables) {
+        Ok(msg) => msg,
         Err(e) => return Response::builder().status(500).body(format!("{}", e)),
     };
     use lettre_email::EmailBuilder;

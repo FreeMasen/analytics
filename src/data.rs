@@ -10,6 +10,7 @@ use postgres::{
 };
 use toml::from_str;
 use uuid::Uuid;
+use reports::Table;
 
 lazy_static !{
     static ref CONFIG: DbConfig = from_str(include_str!("../dbinfo.toml")).expect("Unable to parse dbinfo.toml");
@@ -34,50 +35,54 @@ pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
     Ok(())
 }
 
-pub(crate) fn reports() -> Result<String, Error> {
+pub(crate) fn reports() -> Result<Vec<Table>, Error> {
     let conn = get_connection()?;
-    let table_style = r#""border:1px solid black;border-collapse: collapse;margin-bottom: 10px;""#;
-    let header_style = r#""border:1px solid black;font-weight:bold;""#;
-    let cell_style = r#""border:1px solid black;""#;
-    let refs_head = format!(r#"<table style={}><thead><tr><th style={head_style}>Referrer</th><th style={head_style}>Count</th></tr></thead><tbody>"#, table_style, head_style=header_style);
-    let weekly_refs: String = conn.query("SELECT * FROM referrers_this_week()",
+    let mut ref_table = Table::new(vec![
+        "Referrer".to_string(),
+        "Count".to_string(),
+    ]);
+    conn.query("SELECT * FROM referrers_this_week()",
                 &[])?
         .iter()
-        .map(|r|{
+        .for_each(|r|{
             let referrer: String = r.get(0);
             let ct: i64 = r.get(1);
-            format!("<tr><td style={cell_style}>{}</td><td style={cell_style}>{}</td></tr>", referrer, ct, cell_style=cell_style)
-        })
-        .collect();
-    let foot = format!("</tbody></table>");
-    let visits_head = format!("<table style={}><thead><tr><th style={head_style}>Visit Count</th><th>User Agent</th></tr></thead><tbody>", table_style, head_style=header_style);
-    let weekly_visits: String = conn.query("SELECT * FROM unique_visits_this_week()", &[])?
+            ref_table.rows.push(vec![referrer, ct.to_string()]);
+        });
+    let mut visits = Table::new(vec![
+        "Visit Count".to_string(),
+        "User Agent".to_string(),
+    ]);
+    
+    conn.query("SELECT * FROM unique_visits_this_week()", &[])?
         .iter()
-        .map(|r| {
+        .for_each(|r| {
             let visit_count: i64 = r.get(0);
             let user_agent: Option<String> = r.get(1);
-            format!("<tr><td style={cell_style}>{}</td><td>{}</tr>", visit_count, user_agent.unwrap_or(String::new()), cell_style=cell_style)
-        })
-        .collect();
-    let views_head = format!("<table style={}><thead><tr><th style={head_style}>Page</th><th style={head_style}>View Count</th><th style={head_style}>User Agent</th></tr></thead><tbody>", table_style, head_style=header_style);
-    let weekly_views: String = conn.query("SELECT * FROM unique_page_view_this_week()", &[])?
+            visits.rows.push(vec![
+                visit_count.to_string(),
+                user_agent.unwrap_or("null".to_string()),
+            ]);
+        });
+    let mut views = Table::new(vec![
+        "Page".to_string(),
+        "View Count".to_string(),
+        "User Agent".to_string(),        
+    ]);
+    
+    conn.query("SELECT * FROM unique_page_view_this_week()", &[])?
         .iter()
-        .map(|r| {
+        .for_each(|r| {
             let view_count: i64 = r.get(0);
             let page: String = r.get(1);
             let user_agent: Option<String> = r.get(2);
-            format!("<tr><td style={cell_style}>{}</td><td style={cell_style}>{}</td><td>{}</td></tr>", page, view_count, user_agent.unwrap_or(String::new()), cell_style=cell_style)
-        })
-        .collect();
-    Ok(format!("<html><head></head><body>{refs_head}{weekly_refs}{foot}{visits_head}{visits}{foot}{views_head}{views}{foot}</body></html>",
-                refs_head=refs_head,
-                weekly_refs=weekly_refs,
-                foot=foot,
-                visits_head=visits_head,
-                visits=weekly_visits,
-                views_head=views_head,
-                views=weekly_views
-    ))
+            views.rows.push(vec![
+                view_count.to_string(),
+                page,
+                user_agent.unwrap_or("null".to_string())
+            ]);
+        });
+    Ok(vec![ref_table, visits, views])
 }
 
 fn get_connection() -> Result<Connection, Error> {

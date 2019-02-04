@@ -1,0 +1,25 @@
+<html>
+<head></head>
+<body>
+    {% for table in tables -%}
+        <table style="{{table_style}}">
+            <thead>
+                <tr>
+                    {% for title in table.headers -%}
+                        <th style="{{header_style}}">{{title}}</th>
+                    {% endfor -%}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table.rows -%}
+                    <tr>
+                        {% for cell in row -%}
+                        <td style="{{cell_style}}">{{cell}}</td>
+                        {% endfor -%}
+                    </tr>
+                {% endfor -%}
+            </tbody>
+        </table>
+    {% endfor %}
+</body>
+</html>
