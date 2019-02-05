@@ -41,6 +41,9 @@ mod reports;
 fn main() {
     env_logger::init();
     info!(target: "analytics:info", "Starting up");
+    let cors = warp::cors()
+        .allow_origins(vec!["https://freemasen.github.io"])
+        .allow_methods(vec!["POST"]);
     let log = warp::log("analytics:log");
     let landing = warp::post2()
         .and(warp::path("landing"))
@@ -65,7 +68,8 @@ fn main() {
     let routes = warp::any()
                     .and(analytics)
                     .or(reporting)
-                    .or(catch_all);
+                    .or(catch_all)
+                    .with(cors);
     warp::serve(routes)
         .run(([127, 0, 0, 1], 5555));
 }
