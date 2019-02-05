@@ -42,7 +42,7 @@ fn main() {
     env_logger::init();
     info!(target: "analytics:info", "Starting up");
     let cors = warp::cors()
-        .allow_origins(vec!["https://github.io", "https://freemasen.github.io"])
+        .allow_origins(vec!["https://wiredforge.com", "https://github.io", "https://freemasen.github.io"])
         .allow_methods(vec!["POST", "OPTIONS"])
         .allow_headers(vec![
             "Host",
