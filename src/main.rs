@@ -59,6 +59,7 @@ fn main() {
             "Pragma",
             "Cache-Control",
             "x-client-address",
+            "etag",
         ]);
     let opts = warp::filters::method::options().map(|| {
         Response::builder().status(200).body("")
