@@ -43,7 +43,7 @@ fn main() {
     info!(target: "analytics:info", "Starting up");
     let cors = warp::cors()
         .allow_origins(vec!["https://github.io", "https://freemasen.github.io"])
-        .allow_methods(vec!["POST"])
+        .allow_methods(vec!["POST", "OPTIONS"])
         .allow_headers(vec![
             "Accept",
             "Accept-Language",
@@ -51,8 +51,14 @@ fn main() {
             "Access-Control-Request-Method",
             "Access-Control-Request-Headers",
             "Referer",
+            "Referrer",
             "Origin",
-            "x-client-address"
+            "x-client-address",
+            "DNT",
+            "Connection",
+            "Pragma",
+            "Cache",
+            "TE",
         ]);
     let opts = warp::filters::method::options().map(|| {
         Response::builder().status(200).body("")
