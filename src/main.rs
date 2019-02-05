@@ -45,20 +45,20 @@ fn main() {
         .allow_origins(vec!["https://github.io", "https://freemasen.github.io"])
         .allow_methods(vec!["POST", "OPTIONS"])
         .allow_headers(vec![
+            "Host",
+            "User-Agent",
             "Accept",
             "Accept-Language",
             "Accept-Encoding",
             "Access-Control-Request-Method",
             "Access-Control-Request-Headers",
             "Referer",
-            "Referrer",
             "Origin",
-            "x-client-address",
             "DNT",
             "Connection",
             "Pragma",
-            "Cache",
-            "TE",
+            "Cache-Control",
+            "x-client-address",
         ]);
     let opts = warp::filters::method::options().map(|| {
         Response::builder().status(200).body("")
