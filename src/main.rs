@@ -60,6 +60,10 @@ fn main() {
             "Cache-Control",
             "x-client-address",
             "etag",
+            "x-powered-by",
+            "content-length",
+            "content-type",
+            
         ]);
     let opts = warp::filters::method::options().map(|| {
         Response::builder().status(200).body("")
