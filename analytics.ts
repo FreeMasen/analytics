@@ -1,8 +1,8 @@
 import * as moment from 'moment';
-const now = moment();
+const NOW = moment();
 const COOKIE_KEY = 'pizzalitics';
 const VISIT_KEY = 'slice';
-const method = 'POST';
+const METHOD = 'POST';
 let exit_link: string;
 export {notificationNeeded, notifyUser} from './notification';
 /**
@@ -28,7 +28,7 @@ function link_clicked_handler(ev: MouseEvent) {
  */
 export function sendInfo(url = '/analytics/landing', info: LandingInfo = new LandingInfo()): Promise<InitialResponse> {
     let reqInit = {
-        method,
+        method: METHOD,
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
@@ -41,7 +41,7 @@ export function sendInfo(url = '/analytics/landing', info: LandingInfo = new Lan
         } else {
             return r.json()
         }
-    })
+    });
 }
 /**
  * Store the initial response from the web server
@@ -86,7 +86,7 @@ function safeString(str): string | null {
  */
 export function sendExiting(url = '/analytics/exiting', info: ExitingInfo = new ExitingInfo()) {
     let xhr = new XMLHttpRequest();
-    xhr.open(method, url, false);
+    xhr.open(METHOD, url, false);
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader('Content-Type', 'application/json');
     let body = JSON.stringify(info);
@@ -100,7 +100,7 @@ export function sendExiting(url = '/analytics/exiting', info: ExitingInfo = new 
 export class ExitingInfo {
     constructor(
         public visit: string = safeString(localStorage.getItem(VISIT_KEY)),
-        public time: moment.Duration = moment.duration(moment.utc().diff(now)),
+        public time: moment.Duration = moment.duration(moment.utc().diff(NOW)),
         public link_clicked: string = exit_link,
         ) {}
 
