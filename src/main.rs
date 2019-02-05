@@ -44,6 +44,9 @@ fn main() {
     let cors = warp::cors()
         .allow_origins(vec!["https://github.io", "https://freemasen.github.io"])
         .allow_methods(vec!["POST"]);
+    let opts = warp::filters::method::options().map(|| {
+        Response::builder().status(200).body("")
+    });
     let log = warp::log("analytics:log");
     let landing = warp::post2()
         .and(warp::path("landing"))
@@ -68,6 +71,7 @@ fn main() {
     let routes = warp::any()
                     .and(analytics)
                     .or(reporting)
+                    .or(opts)
                     .or(catch_all)
                     .with(cors);
     warp::serve(routes)
