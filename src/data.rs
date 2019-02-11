@@ -51,23 +51,19 @@ pub(crate) fn reports() -> Result<Vec<Table>, Error> {
         });
     let mut visits = Table::new(vec![
         "Visit Count".to_string(),
-        "User Agent".to_string(),
     ]);
     
     conn.query("SELECT * FROM unique_visits_this_week()", &[])?
         .iter()
         .for_each(|r| {
             let visit_count: i64 = r.get(0);
-            let user_agent: Option<String> = r.get(1);
             visits.rows.push(vec![
                 visit_count.to_string(),
-                user_agent.unwrap_or("null".to_string()),
             ]);
         });
     let mut views = Table::new(vec![
         "Page".to_string(),
-        "View Count".to_string(),
-        "User Agent".to_string(),        
+        "View Count".to_string(),    
     ]);
     
     conn.query("SELECT * FROM unique_page_view_this_week()", &[])?
@@ -75,11 +71,9 @@ pub(crate) fn reports() -> Result<Vec<Table>, Error> {
         .for_each(|r| {
             let view_count: i64 = r.get(0);
             let page: String = r.get(1);
-            let user_agent: Option<String> = r.get(2);
             views.rows.push(vec![
                 view_count.to_string(),
                 page,
-                user_agent.unwrap_or("null".to_string())
             ]);
         });
     Ok(vec![ref_table, visits, views])
