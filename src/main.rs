@@ -17,6 +17,7 @@ extern crate warp;
 #[cfg(test)]
 extern crate reqwest;
 extern crate tera;
+extern crate uap_rust;
 
 use std::{
     error::Error as StdError,

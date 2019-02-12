@@ -12,12 +12,13 @@ use toml::from_str;
 use uuid::Uuid;
 use reports::Table;
 
-lazy_static !{
+lazy_static! {
     static ref CONFIG: DbConfig = from_str(include_str!("../dbinfo.toml")).expect("Unable to parse dbinfo.toml");
 }
 
 pub(crate) fn add_entry(info: &LandingInfo, ip: &str, user_agent: &str) -> Result<InitialResponse, Error> {
     debug!("add_entry {:#?},\n{}, {}", info, ip, user_agent);
+    let user_agent = parse_ua(user_agent).unwrap_or(user_agent.to_owned());
     let conn = get_connection()?;
     let rows = conn.query("SELECT token, visit FROM add_session($1, $2, $3, $4, $5, $6, $7, $8)", &[&info.cookie, &ip, &info.referrer, &info.page, &info.when, &info.prev_visit, &info.site, &user_agent])?;
     let only = rows.get(0);
@@ -27,6 +28,12 @@ pub(crate) fn add_entry(info: &LandingInfo, ip: &str, user_agent: &str) -> Resul
         token,
         visit,
     })
+}
+
+fn parse_ua(ua: &str) -> Result<String, Error> {
+    let parser = uap_rust::parser::Parser::new().map_err(|e| Error::Other(format!("failed to create UA parser {}", e)))?;
+    let ua = parser.parse(ua.to_owned());
+    Ok(format!("{} {} {}",  ua.user_agent.family, ua.os.family,ua.device.family))
 }
 
 pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
