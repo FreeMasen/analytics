@@ -20,7 +20,12 @@ pub(crate) fn add_entry(info: &LandingInfo, ip: &str, user_agent: &str) -> Resul
     debug!("add_entry {:#?},\n{}, {}", info, ip, user_agent);
     let user_agent = parse_ua(user_agent).unwrap_or(user_agent.to_owned());
     let conn = get_connection()?;
-    let rows = conn.query("SELECT token, visit FROM add_session($1, $2, $3, $4, $5, $6, $7, $8)", &[&info.cookie, &ip, &info.referrer, &info.page, &info.when, &info.prev_visit, &info.site, &user_agent])?;
+    let rows = conn.query("SELECT token, visit 
+                            FROM add_session($1, $2, $3, $4, $5, $6, $7, $8)", 
+                        &[&info.cookie, &ip, 
+                        &info.referrer, &info.page, 
+                        &info.when, &info.prev_visit, 
+                        &info.site, &user_agent])?;
     let only = rows.get(0);
     let token: Uuid = only.get(0);
     let visit: Uuid = only.get(1);
@@ -38,17 +43,22 @@ fn parse_ua(ua: &str) -> Result<String, Error> {
 
 pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
     let conn = get_connection()?;
-    conn.execute("SELECT update_session($1, $2, $3)", &[&info.visit, &info.time, &info.link_clicked])?;
+    conn.execute("SELECT update_session($1, $2, $3)", 
+                &[&info.visit, &info.time, 
+                &info.link_clicked])?;
     Ok(())
 }
 
 pub(crate) fn reports() -> Result<Vec<Table>, Error> {
     let conn = get_connection()?;
-    let mut ref_table = Table::new(vec![
-        "Referrer".to_string(),
+    let mut ref_table = Table::new(
+        String::from("Referer Counts"),
+        vec![
+        "Referer".to_string(),
         "Count".to_string(),
     ]);
-    conn.query("SELECT * FROM referrers_this_week()",
+    conn.query("SELECT * FROM 
+                referrers_this_week()",
                 &[])?
         .iter()
         .for_each(|r|{
@@ -56,7 +66,9 @@ pub(crate) fn reports() -> Result<Vec<Table>, Error> {
             let ct: i64 = r.get(1);
             ref_table.rows.push(vec![referrer, ct.to_string()]);
         });
-    let mut visits = Table::new(vec![
+    let mut visits = Table::new(
+        String::from("Total Visits"),
+        vec![
         "Visit Count".to_string(),
     ]);
     
@@ -68,7 +80,9 @@ pub(crate) fn reports() -> Result<Vec<Table>, Error> {
                 visit_count.to_string(),
             ]);
         });
-    let mut views = Table::new(vec![
+    let mut views = Table::new(
+        String::from("Page Counts"),
+        vec![
         "Page".to_string(),
         "View Count".to_string(),    
     ]);

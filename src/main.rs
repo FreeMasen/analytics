@@ -18,6 +18,8 @@ extern crate warp;
 extern crate reqwest;
 extern crate tera;
 extern crate uap_rust;
+extern crate term_table;
+extern crate colored;
 
 use std::{
     error::Error as StdError,
@@ -100,8 +102,12 @@ fn main() {
         .run(([127, 0, 0, 1], 5555));
 }
 
-fn landing_handler(info: LandingInfo, remote: String, user_agent: String) -> impl Reply {
+fn landing_handler(mut info: LandingInfo, remote: String, user_agent: String) -> impl Reply {
     info!(target: "analytics:info", "/analytics/landing {} {}", remote, info);
+    let index = "/index.html";
+    if info.page.ends_with(index) {
+        info.page = info.page.trim_end_matches(index).to_string();
+    }
     let res = match data::add_entry(&info, &remote, &user_agent) {
         Ok(info) => {
             info!(target: "analytics:info", "Successfully added entry to database");
@@ -150,6 +156,9 @@ fn reports_handler() -> impl Reply {
     let tables = match data::reports() {
         Ok(tables) => tables,
         Err(e) => return Response::builder().status(500).body(format!("{}", e)),
+    };
+    if let Ok(text) = reports::generate_ascii_report(&tables) {
+        println!("{}", text);
     };
     let msg = match reports::generate_report(tables) {
         Ok(msg) => msg,
@@ -246,7 +255,7 @@ impl StdError for Error {
 
 impl ::std::fmt::Display for Error {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        if let Some(ref inner) = self.cause() {
+        if let Some(ref inner) = self.source() {
             inner.fmt(f)
         } else {
             match self {
