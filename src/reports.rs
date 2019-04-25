@@ -33,11 +33,12 @@ pub fn generate_report(tables: Vec<Table>) -> Result<String, String> {
     Tera::one_off(TEMPLATE, &ctx, true).map_err(|e| format!("{:?}", e))
 }
 
-pub fn generate_ascii_report(tables: &Vec<Table>) -> Result<String, String> {
+pub fn generate_ascii_report(tables: &Vec<Table>) -> String{
     let mut ret = String::new();
     for table in tables {
-        let columns = table.rows.first().map(|r| r.len()).unwrap_or(1);
+        let columns = table.headers.len();
         let mut t = TTable::new();
+        debug!("generating {} with width {}", table.name, columns);
         t.style = TableStyle::rounded();
         t.add_row(Row::new(vec![
             TableCell::new_with_alignment(&table.name.bold().blue(), columns, Alignment::Center),
@@ -54,7 +55,7 @@ pub fn generate_ascii_report(tables: &Vec<Table>) -> Result<String, String> {
         ret.push_str(&t.render());
         ret.push_str("\n\n");
     }
-    Ok(ret)
+    ret
 }
 
 #[cfg(test)]

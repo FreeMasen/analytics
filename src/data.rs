@@ -11,6 +11,7 @@ use postgres::{
 use toml::from_str;
 use uuid::Uuid;
 use reports::Table;
+use super::ReportWindow;
 
 lazy_static! {
     static ref CONFIG: DbConfig = from_str(include_str!("../dbinfo.toml")).expect("Unable to parse dbinfo.toml");
@@ -49,17 +50,18 @@ pub(crate) fn update_entry(info: &ExitingInfo) -> Result<(), Error> {
     Ok(())
 }
 
-pub(crate) fn reports() -> Result<Vec<Table>, Error> {
+pub(crate) fn reports(window: &ReportWindow) -> Result<Vec<Table>, Error> {
     let conn = get_connection()?;
+    let day_ct = window.to_sql();
     let mut ref_table = Table::new(
-        String::from("Referer Counts"),
+        format!("{} Day Referer Counts", day_ct),
         vec![
         "Referer".to_string(),
         "Count".to_string(),
     ]);
     conn.query("SELECT * FROM 
-                referrers_this_week()",
-                &[])?
+                unique_referrers($1)",
+                &[&day_ct])?
         .iter()
         .for_each(|r|{
             let referrer: String = r.get(0);
@@ -67,12 +69,14 @@ pub(crate) fn reports() -> Result<Vec<Table>, Error> {
             ref_table.rows.push(vec![referrer, ct.to_string()]);
         });
     let mut visits = Table::new(
-        String::from("Total Visits"),
+        format!("{} Day Visits", day_ct),
         vec![
         "Visit Count".to_string(),
     ]);
     
-    conn.query("SELECT * FROM unique_visits_this_week()", &[])?
+    conn.query("SELECT * 
+                FROM unique_visits($1)", 
+                &[&day_ct])?
         .iter()
         .for_each(|r| {
             let visit_count: i64 = r.get(0);
@@ -81,13 +85,15 @@ pub(crate) fn reports() -> Result<Vec<Table>, Error> {
             ]);
         });
     let mut views = Table::new(
-        String::from("Page Counts"),
+        format!("{}  Day Page Counts", day_ct),
         vec![
         "Page".to_string(),
         "View Count".to_string(),    
     ]);
     
-    conn.query("SELECT * FROM unique_page_view_this_week()", &[])?
+    conn.query("SELECT * 
+                FROM unique_page_views($1)", 
+                &[&day_ct])?
         .iter()
         .for_each(|r| {
             let view_count: i64 = r.get(0);

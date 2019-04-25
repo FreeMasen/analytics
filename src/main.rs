@@ -87,6 +87,7 @@ fn main() {
     let reporting = warp::get2()
         .and(warp::path("analytics"))
         .and(warp::path("reports"))
+        .and(warp::path::param())
         .map(reports_handler)
         .with(log);
     let catch_all = warp::any().map(catch_all_handler).with(log);
@@ -152,36 +153,66 @@ fn catch_all_handler() -> impl Reply {
         .body("<html><head></head><body><h1>analytics smoketest</h1></body>")
 }
 
-fn reports_handler() -> impl Reply {
-    let tables = match data::reports() {
+fn reports_handler(window: ReportWindow) -> impl Reply {
+    let tables = match data::reports(&window) {
         Ok(tables) => tables,
         Err(e) => return Response::builder().status(500).body(format!("{}", e)),
     };
-    if let Ok(text) = reports::generate_ascii_report(&tables) {
-        println!("{}", text);
-    };
+    debug!("captured db data");
+    let reply = reports::generate_ascii_report(&tables);
+    debug!("generated ascii tables");
     let msg = match reports::generate_report(tables) {
         Ok(msg) => msg,
         Err(e) => return Response::builder().status(500).body(format!("{}", e)),
     };
-    use lettre_email::EmailBuilder;
-    use lettre::{EmailTransport, SmtpTransport};
-    let email = match EmailBuilder::new()
-        .from("r@robertmasen.pizza")
-        .to("r.f.masen@gmail.com")
-        .subject(format!("Weekly analytics report {}", chrono::Local::today()))
-        .html(msg.clone())
-        .build() {
-        Ok(email) => email,
-        Err(e) => return Response::builder().status(500).body(format!("{}", e)),
-    };
-    let mut mailer = match SmtpTransport::builder_unencrypted_localhost() {
-        Ok(m) => m.build(),
-        Err(e) => return Response::builder().status(500).body(format!("{}", e)),
-    };
-    match mailer.send(&email) {
-        Ok(_) => Response::builder().body(msg),
-        Err(e) => Response::builder().status(500).body(format!("{}", e))
+    debug!("generated html tables");
+    // use lettre_email::EmailBuilder;
+    // use lettre::{EmailTransport, SmtpTransport};
+    // let email = match EmailBuilder::new()
+    //     .from("r@robertmasen.pizza")
+    //     .to("r.f.masen@gmail.com")
+    //     .subject(format!("Weekly analytics report {}", chrono::Local::today()))
+    //     .html(msg.clone())
+    //     .build() {
+    //     Ok(email) => email,
+    //     Err(e) => return Response::builder().status(500).body(format!("{}\n{}", e, reply)),
+    // };
+    // let mut mailer = match SmtpTransport::builder_unencrypted_localhost() {
+    //     Ok(m) => m.build(),
+    //     Err(e) => return Response::builder().status(500).body(format!("{}\n{}", e, reply)),
+    // };
+    
+    // match mailer.send(&email) {
+    //     Ok(_) => (),
+    //     Err(e) => return Response::builder().status(500).body(format!("{}", e))
+    // };
+    Response::builder().header("content-type", "text/plain").body(reply)
+}
+
+enum ReportWindow {
+    Day,
+    Week,
+    Month,
+}
+
+impl ::std::str::FromStr for ReportWindow {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, ()> {
+        Ok(match s {
+            "day" => ReportWindow::Day,
+            "month" => ReportWindow::Month,
+            _ => ReportWindow::Week,
+        })
+    }
+}
+
+impl ReportWindow {
+    pub fn to_sql(&self) -> i32 {
+        match self {
+            ReportWindow::Day => 1,
+            ReportWindow::Week => 7,
+            ReportWindow::Month => 30,
+        }
     }
 }
 
