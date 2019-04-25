@@ -166,26 +166,26 @@ fn reports_handler(window: ReportWindow) -> impl Reply {
         Err(e) => return Response::builder().status(500).body(format!("{}", e)),
     };
     debug!("generated html tables");
-    // use lettre_email::EmailBuilder;
-    // use lettre::{EmailTransport, SmtpTransport};
-    // let email = match EmailBuilder::new()
-    //     .from("r@robertmasen.pizza")
-    //     .to("r.f.masen@gmail.com")
-    //     .subject(format!("Weekly analytics report {}", chrono::Local::today()))
-    //     .html(msg.clone())
-    //     .build() {
-    //     Ok(email) => email,
-    //     Err(e) => return Response::builder().status(500).body(format!("{}\n{}", e, reply)),
-    // };
-    // let mut mailer = match SmtpTransport::builder_unencrypted_localhost() {
-    //     Ok(m) => m.build(),
-    //     Err(e) => return Response::builder().status(500).body(format!("{}\n{}", e, reply)),
-    // };
+    use lettre_email::EmailBuilder;
+    use lettre::{EmailTransport, SmtpTransport};
+    let email = match EmailBuilder::new()
+        .from("r@robertmasen.pizza")
+        .to("r.f.masen@gmail.com")
+        .subject(format!("Weekly analytics report {}", chrono::Local::today()))
+        .html(msg.clone())
+        .build() {
+        Ok(email) => email,
+        Err(e) => return Response::builder().status(500).body(format!("{}\n{}", e, reply)),
+    };
+    let mut mailer = match SmtpTransport::builder_unencrypted_localhost() {
+        Ok(m) => m.build(),
+        Err(e) => return Response::builder().status(500).body(format!("{}\n{}", e, reply)),
+    };
     
-    // match mailer.send(&email) {
-    //     Ok(_) => (),
-    //     Err(e) => return Response::builder().status(500).body(format!("{}", e))
-    // };
+    match mailer.send(&email) {
+        Ok(_) => (),
+        Err(e) => return Response::builder().status(500).body(format!("{}", e))
+    };
     Response::builder().header("content-type", "text/plain").body(reply)
 }
 
