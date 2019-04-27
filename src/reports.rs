@@ -39,7 +39,7 @@ pub fn generate_ascii_report(tables: &Vec<Table>) -> String{
         let columns = table.headers.len();
         let mut t = TTable::new();
         debug!("generating {} with width {}", table.name, columns);
-        t.style = TableStyle::rounded();
+        t.style = TableStyle::extended();
         t.add_row(Row::new(vec![
             TableCell::new_with_alignment(&table.name.bold().blue(), columns, Alignment::Center),
         ]));

@@ -41,6 +41,8 @@ mod data;
 mod time_parsing;
 mod reports;
 
+use reports::Table;
+
 fn main() {
     env_logger::init();
     info!(target: "analytics:info", "Starting up");
@@ -84,12 +86,17 @@ fn main() {
         .and(warp::body::json())
         .map(exiting_handler)
         .with(log);
-    let reporting = warp::get2()
+    let reporting_with_email = warp::get2()
         .and(warp::path("analytics"))
         .and(warp::path("reports"))
         .and(warp::path::param())
-        .map(reports_handler)
+        .map(|window: ReportWindow| reports_handler(window, true))
         .with(log);
+    let reporting_no_email = warp::get2()
+        .and(warp::path::param())
+        .map(|window: ReportWindow| reports_handler(window, false))
+        .with(log);
+    let reporting = reporting_with_email.or(reporting_no_email);
     let catch_all = warp::any().map(catch_all_handler).with(log);
     
     let analytics = warp::post2().and(warp::path("analytics")).and(landing.or(exiting));
@@ -105,6 +112,9 @@ fn main() {
 
 fn landing_handler(mut info: LandingInfo, remote: String, user_agent: String) -> impl Reply {
     info!(target: "analytics:info", "/analytics/landing {} {}", remote, info);
+    if let Some(idx) = info.page.find("?") {
+        info.page = info.page[0..idx].to_string();
+    }
     let index = "/index.html";
     if info.page.ends_with(index) {
         info.page = info.page.trim_end_matches(index).to_string();
@@ -153,40 +163,38 @@ fn catch_all_handler() -> impl Reply {
         .body("<html><head></head><body><h1>analytics smoketest</h1></body>")
 }
 
-fn reports_handler(window: ReportWindow) -> impl Reply {
+fn reports_handler(window: ReportWindow, email: bool) -> impl Reply {
     let tables = match data::reports(&window) {
         Ok(tables) => tables,
         Err(e) => return Response::builder().status(500).body(format!("{}", e)),
     };
     debug!("captured db data");
-    let reply = reports::generate_ascii_report(&tables);
+    let mut reply = reports::generate_ascii_report(&tables);
     debug!("generated ascii tables");
-    let msg = match reports::generate_report(tables) {
-        Ok(msg) => msg,
-        Err(e) => return Response::builder().status(500).body(format!("{}", e)),
-    };
-    debug!("generated html tables");
+    if email {
+        if let Err(msg) = send_email("r.f.masen@gmail.com", tables) {
+            reply = format!("{}\n\n{}", msg, reply);
+        }
+    }
+    Response::builder().header("content-type", "text/plain").body(reply)
+}
+
+fn send_email(address: &str, tables: Vec<Table>) -> Result<(), String> {
     use lettre_email::EmailBuilder;
     use lettre::{EmailTransport, SmtpTransport};
-    let email = match EmailBuilder::new()
+    let msg = reports::generate_report(tables).map_err(|e| format!("{}", e))?;
+    let email = EmailBuilder::new()
         .from("r@robertmasen.pizza")
-        .to("r.f.masen@gmail.com")
+        .to(address)
         .subject(format!("Weekly analytics report {}", chrono::Local::today()))
         .html(msg.clone())
-        .build() {
-        Ok(email) => email,
-        Err(e) => return Response::builder().status(500).body(format!("{}\n{}", e, reply)),
-    };
-    let mut mailer = match SmtpTransport::builder_unencrypted_localhost() {
-        Ok(m) => m.build(),
-        Err(e) => return Response::builder().status(500).body(format!("{}\n{}", e, reply)),
-    };
-    
-    match mailer.send(&email) {
-        Ok(_) => (),
-        Err(e) => return Response::builder().status(500).body(format!("{}", e))
-    };
-    Response::builder().header("content-type", "text/plain").body(reply)
+        .build()
+        .map_err(|e| format!("{}", e))?;
+    let mut mailer = SmtpTransport::builder_unencrypted_localhost()
+                        .map_err(|e| format!("{}", e))?
+                        .build();
+    mailer.send(&email).map_err(|e| format!("{}", e))?;
+    Ok(())
 }
 
 enum ReportWindow {
