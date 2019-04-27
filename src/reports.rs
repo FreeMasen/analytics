@@ -22,7 +22,6 @@ impl Table {
     }
 }
 
-
 pub fn generate_report(tables: Vec<Table>) -> Result<String, String> {
     use tera::{Tera, Context};
     let mut ctx = Context::new();
