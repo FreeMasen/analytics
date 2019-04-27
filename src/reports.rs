@@ -78,7 +78,7 @@ mod test {
         let tables = vec![
             table
         ];
-        println!("{}", generate_ascii_report(&tables).unwrap())
+        println!("{}", generate_ascii_report(&tables));
     }
 
     #[test]
@@ -88,6 +88,6 @@ mod test {
         let tables = vec![
             table
         ];
-        println!("{}", generate_ascii_report(&tables).unwrap());
+        println!("{}", generate_ascii_report(&tables));
     }
 }

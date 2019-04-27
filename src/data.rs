@@ -64,8 +64,11 @@ pub(crate) fn reports(window: &ReportWindow) -> Result<Vec<Table>, Error> {
                 &[&day_ct])?
         .iter()
         .for_each(|r|{
-            let referrer: String = r.get(0);
+            let mut referrer: String = r.get(0);
             let ct: i64 = r.get(1);
+            if referrer.len() > 100 {
+                referrer = format!("{}...", &referrer[0..97]);
+            }
             ref_table.rows.push(vec![referrer, ct.to_string()]);
         });
     let mut visits = Table::new(
