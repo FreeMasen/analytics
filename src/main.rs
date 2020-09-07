@@ -119,7 +119,7 @@ fn landing_handler(mut info: LandingInfo, remote: String, user_agent: String) ->
     if info.page.ends_with(index) {
         info.page = info.page.trim_end_matches(index).to_string();
     } else if info.page.ends_with("/") {
-        info.page = info.path.trim_end_matches("/").to_string();
+        info.page = info.page.trim_end_matches("/").to_string();
     }
     let res = match data::add_entry(&info, &remote, &user_agent) {
         Ok(info) => {
@@ -183,7 +183,7 @@ fn reports_handler(window: ReportWindow, email: bool) -> impl Reply {
 
 fn send_email(address: &str, tables: Vec<Table>) -> Result<(), String> {
     use lettre_email::EmailBuilder;
-    use lettre::{EmailTransport, SmtpTransport};
+    use lettre::{SmtpTransport, Transport, SmtpClient};
     let msg = reports::generate_report(tables).map_err(|e| format!("{}", e))?;
     let email = EmailBuilder::new()
         .from("r@robertmasen.pizza")
@@ -192,10 +192,10 @@ fn send_email(address: &str, tables: Vec<Table>) -> Result<(), String> {
         .html(msg.clone())
         .build()
         .map_err(|e| format!("{}", e))?;
-    let mut mailer = SmtpTransport::builder_unencrypted_localhost()
-                        .map_err(|e| format!("{}", e))?
-                        .build();
-    mailer.send(&email).map_err(|e| format!("{}", e))?;
+    let client = SmtpClient::new_unencrypted_localhost()
+        .map_err(|e| format!("{}", e))?;
+    let mut mailer = SmtpTransport::new(client);
+    mailer.send(email.into()).map_err(|e| format!("{}", e))?;
     Ok(())
 }
 
@@ -285,7 +285,7 @@ enum Error {
 }
 
 impl StdError for Error {
-    fn cause(&self) -> Option<&StdError> {
+    fn cause(&self) -> Option<&dyn StdError> {
         match self {
             Error::Other(_) => None,
             Error::Postgres(ref e) => Some(e),
