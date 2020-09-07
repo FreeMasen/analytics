@@ -118,6 +118,8 @@ fn landing_handler(mut info: LandingInfo, remote: String, user_agent: String) ->
     let index = "/index.html";
     if info.page.ends_with(index) {
         info.page = info.page.trim_end_matches(index).to_string();
+    } else if info.page.ends_with("/") {
+        info.page = info.path.trim_end_matches("/").to_string();
     }
     let res = match data::add_entry(&info, &remote, &user_agent) {
         Ok(info) => {
